@@ -293,10 +293,10 @@ body{font-family:'Sora',sans-serif;background:linear-gradient(170deg,#0a1628 0%,
     <div class="prog-total" id="d_total" style="color:var(--txt-b)">R$ 0</div>
     <div class="prog-sub" id="d_sub_prog" style="color:var(--txt2-b)"><span id="d_pct">0%</span><span id="d_dias"></span></div>
     <div class="bar bar-warn" id="barWrap"><div class="bar-f bf-verm" id="barFill" style="width:0%"></div></div>
-    <div class="marcadores">
-      <div class="marc" style="left:77.0%"><div class="marc-line"></div><div class="marc-lbl" style="color:var(--txt2-b)">67k</div></div>
-      <div class="marc" style="left:88.5%"><div class="marc-line"></div><div class="marc-lbl" style="color:var(--txt2-b)">77k</div></div>
-      <div class="marc" style="left:100%"><div class="marc-line"></div><div class="marc-lbl" style="color:var(--txt2-b)">110k</div></div>
+    <div class="marcadores" id="marcadoresWrap">
+      <div class="marc" id="marc1" style="left:77.0%"><div class="marc-line"></div><div class="marc-lbl" style="color:var(--txt2-b)" id="marc1lbl">67k</div></div>
+      <div class="marc" id="marc2" style="left:88.5%"><div class="marc-line"></div><div class="marc-lbl" style="color:var(--txt2-b)" id="marc2lbl">77k</div></div>
+      <div class="marc" id="marc3" style="left:100%"><div class="marc-line"></div><div class="marc-lbl" style="color:var(--txt2-b)" id="marc3lbl">87k</div></div>
     </div>
     <div class="falta-lbl" id="d_falta" style="color:var(--txt2-b)">—</div>
   </div>
@@ -543,7 +543,73 @@ body{font-family:'Sora',sans-serif;background:linear-gradient(170deg,#0a1628 0%,
 <script>
 const SHEET_URL="https://script.google.com/macros/s/AKfycbyVums8uRn42pW2YLZpdcL4YWNB2LbjZTVcudKO7KG3EA6YwRvblpRF1Y6ltJQeoomlVQ/exec";
 const SENHA='lideringleses';
-const M1=67000,M2=77000,SU=87000;
+let M1=67000,M2=77000,SU=87000;
+// =====================================================================
+// MAPA DE METAS POR MÊS — edite aqui para cada mês
+// Formato: 'Mmm/AAAA': [meta1, meta2, supermeta]
+// Meses não listados usam as metas padrão (últimas definidas)
+// =====================================================================
+var METAS_POR_MES = {
+  'Jan/2025': [87000, 97000, 107000],
+  'Fev/2025': [87000, 97000, 107000],
+  'Mar/2025': [87000, 97000, 107000],
+  'Abr/2025': [87000, 97000, 107000],
+  'Mai/2025': [67000, 77000, 87000],
+  // Adicione novos meses aqui quando as metas mudarem:
+  // 'Jun/2025': [70000, 80000, 90000],
+};
+var METAS_PADRAO = [67000, 77000, 87000]; // metas vigentes para meses não mapeados
+
+function getMetasDoMes(mes) {
+  if (METAS_POR_MES[mes]) return METAS_POR_MES[mes];
+  // Se não mapeado, usa as metas mais recentes definidas antes desse mês
+  var meses = Object.keys(METAS_POR_MES);
+  var ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function mesParaNum(m) {
+    var p = m.split('/'); return parseInt(p[1]) * 12 + ABREV.indexOf(p[0]);
+  }
+  var numMes = mesParaNum(mes);
+  var maiorAnterior = -1, metasAnterior = METAS_PADRAO;
+  meses.forEach(function(m) {
+    var n = mesParaNum(m);
+    if (n <= numMes && n > maiorAnterior) { maiorAnterior = n; metasAnterior = METAS_POR_MES[m]; }
+  });
+  return metasAnterior;
+}
+
+function fmtK(v) { return (v/1000).toFixed(0)+'k'; }
+
+function aplicarMetas(mes) {
+  var metas = getMetasDoMes(mes);
+  M1 = metas[0]; M2 = metas[1]; SU = metas[2];
+
+  // Atualizar badges
+  var mb1v = document.querySelector('#mb1 .mb-val');
+  var mb2v = document.querySelector('#mb2 .mb-val');
+  var mbsv = document.querySelector('#mbs .mb-val');
+  if (mb1v) mb1v.textContent = 'R$ ' + fmtK(M1);
+  if (mb2v) mb2v.textContent = 'R$ ' + fmtK(M2);
+  if (mbsv) mbsv.textContent = 'R$ ' + fmtK(SU);
+
+  // Atualizar marcadores da barra
+  var pM1 = (M1/SU*100).toFixed(1)+'%';
+  var pM2 = (M2/SU*100).toFixed(1)+'%';
+  var m1 = document.getElementById('marc1');
+  var m2 = document.getElementById('marc2');
+  var m1l = document.getElementById('marc1lbl');
+  var m2l = document.getElementById('marc2lbl');
+  var m3l = document.getElementById('marc3lbl');
+  if (m1) m1.style.left = pM1;
+  if (m2) m2.style.left = pM2;
+  if (m1l) m1l.textContent = fmtK(M1);
+  if (m2l) m2l.textContent = fmtK(M2);
+  if (m3l) m3l.textContent = fmtK(SU);
+
+  // Recalcular tudo com as novas metas
+  recalc();
+}
+
+
 var _bonusMeta=0,_remAL=0,_remDA=0,_remNT=0,_prodAL=0,_prodDA=0,_lastMeta=0;
 
 function s(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
@@ -584,6 +650,8 @@ s('d_dias',diasR+' dias restantes');
 })();
 
 function trocarMes(){
+  var mes = getMesSelecionado();
+  aplicarMetas(mes);
   limparCampos();
   var ui=document.getElementById('ultimoSalvo');if(ui)ui.innerHTML='Carregando...';
   var cu=document.getElementById('ch_ult');if(cu)cu.textContent='Carregando...';
@@ -880,6 +948,7 @@ function visualizar(){
   _modoEdicao=false;
   document.getElementById('overlay').style.display='none';
   document.getElementById('modobar').style.display='flex';
+  aplicarMetas(getMesSelecionado());
   carregarUltimoSalvo();carregarHistorico();
 }
 function pedirSenha(){
