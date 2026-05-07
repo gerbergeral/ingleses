@@ -550,15 +550,36 @@ let M1=67000,M2=77000,SU=87000;
 // Meses não listados usam as metas padrão (últimas definidas)
 // =====================================================================
 var METAS_POR_MES = {
+  // 2025: metas antigas (Jan–Abr) e novas (Mai em diante)
   'Jan/2025': [87000, 97000, 107000],
   'Fev/2025': [87000, 97000, 107000],
   'Mar/2025': [87000, 97000, 107000],
   'Abr/2025': [87000, 97000, 107000],
   'Mai/2025': [67000, 77000, 87000],
-  // Adicione novos meses aqui quando as metas mudarem:
-  // 'Jun/2025': [70000, 80000, 90000],
+  'Jun/2025': [67000, 77000, 87000],
+  'Jul/2025': [67000, 77000, 87000],
+  'Ago/2025': [67000, 77000, 87000],
+  'Set/2025': [67000, 77000, 87000],
+  'Out/2025': [67000, 77000, 87000],
+  'Nov/2025': [67000, 77000, 87000],
+  'Dez/2025': [67000, 77000, 87000],
+  // 2026: metas vigentes (adicione uma nova linha quando as metas mudarem)
+  'Jan/2026': [67000, 77000, 87000],
+  'Fev/2026': [67000, 77000, 87000],
+  'Mar/2026': [67000, 77000, 87000],
+  'Abr/2026': [67000, 77000, 87000],
+  'Mai/2026': [67000, 77000, 87000],
+  'Jun/2026': [67000, 77000, 87000],
+  'Jul/2026': [67000, 77000, 87000],
+  'Ago/2026': [67000, 77000, 87000],
+  'Set/2026': [67000, 77000, 87000],
+  'Out/2026': [67000, 77000, 87000],
+  'Nov/2026': [67000, 77000, 87000],
+  'Dez/2026': [67000, 77000, 87000],
+  // ➕ Para alterar metas de um mês futuro, mude o valor aqui:
+  // 'Jun/2026': [70000, 80000, 90000],
 };
-var METAS_PADRAO = [67000, 77000, 87000]; // metas vigentes para meses não mapeados
+var METAS_PADRAO = [67000, 77000, 87000]; // fallback para meses não mapeados
 
 function getMetasDoMes(mes) {
   if (METAS_POR_MES[mes]) return METAS_POR_MES[mes];
@@ -647,6 +668,8 @@ s('d_dias',diasR+' dias restantes');
     if(op.atual) opt.selected = true;
     sel.appendChild(opt);
   });
+  // Aplicar metas do mês atual logo após popular o seletor
+  aplicarMetas(sel.value);
 })();
 
 function trocarMes(){
@@ -948,7 +971,6 @@ function visualizar(){
   _modoEdicao=false;
   document.getElementById('overlay').style.display='none';
   document.getElementById('modobar').style.display='flex';
-  aplicarMetas(getMesSelecionado());
   carregarUltimoSalvo();carregarHistorico();
 }
 function pedirSenha(){
