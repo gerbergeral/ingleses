@@ -437,7 +437,7 @@ const CONFIG = {
     history: {
       '2026-01': 65000, '2026-02': 65000, '2026-03': 65000, '2026-04': 65000,
       '2026-05': 65000, '2026-06': 65000,
-      '2026-07': 40000,
+      '2026-07': 65000,
       '2026-08': 65000, '2026-09': 65000, '2026-10': 65000,
       '2026-11': 65000, '2026-12': 65000
     }
@@ -678,6 +678,11 @@ async function loadMonth() {
     if (!Array.isArray(records)) records = [];
     document.getElementById('monthStatus').textContent = currentMonth + ' — ' + records.length + ' registro(s)';
     renderAll();
+    // Toggle Ana Kézia visibility based on month
+    const showAK = !isMesAgostoOuDepois();
+    document.querySelectorAll('.ak-field').forEach(el => {
+      el.style.display = showAK ? '' : 'none';
+    });
     // Re-render leader/leader tab if unlocked
     if (isLiderancaUnlocked) renderLideranca();
   } catch (e) {
@@ -918,6 +923,25 @@ function countWorkingDaysInWeek(year, month, semanaInicio, dowAtual) {
   return count;
 }
 
+// ==================== DETECTAR MESES ====================
+function isMesAgostoOuDepois() {
+  const mes = currentMonth || '';
+  const parts = mes.split('/');
+  if (parts.length !== 2) return true; // assume agosto+ se não tem mês
+  const mesNome = parts[0].toLowerCase();
+  const ano = parseInt(parts[1]);
+  const mesesAgostoDepois = ['ago','ago','set','out','nov','dez'];
+  const mesNum = mesToNum(mesNome);
+  if (ano > 2026) return true;
+  if (ano === 2026 && mesNum >= 8) return true; // agosto 2026 ou depois
+  return false;
+}
+
+function mesToNum(mesNome) {
+  const map = {jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12};
+  return map[mesNome] || 0;
+}
+
 // ==================== BÔNUS VENDAS VOLUME ====================
 function calcBonusVendasVolume(vendas) {
   if (vendas >= 15) {
@@ -1105,66 +1129,65 @@ function renderMeta(t) {
     </div>
     <div class="person-card" style="border-left-color:var(--gold)">
       <div class="name">Natiele</div>
-      <div class="role">Registro sem bônus folha</div>
+      <div class="role">Consultora</div>
       <div class="label">Vendas</div>
       <div class="value" style="color:${t.ov > 0 ? 'var(--green)' : '#c0392b'}">R$ ${fmt(t.ov)}</div>
-      <div class="sub">Vendas: ${t.vendasOutros} | Unidade total: ${t.totalVendas}</div>
+      <div class="sub">Planos: ${t.vendasOutros} | Anuais: ${t.o_anuais} (${t.percAnuaisOutros}%)</div>
     </div>
   `;
 
 
 
   // Ranking — Medalhas + Participação
-  const totalHH_AK = t.sv + t.rv;
+  const showAKRank = !isMesAgostoOuDepois(); // Ana Kézia só até julho/2026
+  const totalEquipeRank = showAKRank ? (t.sv + t.rv + t.ov) : (t.sv + t.ov);
   const totalAtual2 = t.sv + t.rv + t.ov;
   const metaAtual2 = getMetaAtual();
   const metaBater = totalAtual2 >= metaAtual2;
-  if (totalHH_AK === 0) {
+
+  // Monta lista de consultoras para ranking
+  const consultoras = [
+    {name:'Hayhume', val:t.sv, vendas:t.vendasHH, bonusV:calcBonusVendasVolume(t.vendasHH)}
+  ];
+  if (showAKRank) {
+    consultoras.push({name:'Ana Kézia', val:t.rv, vendas:t.vendasAK, bonusV:calcBonusVendasVolume(t.vendasAK)});
+  }
+  consultoras.push({name:'Natiele', val:t.ov, vendas:t.vendasOutros, bonusV:calcBonusVendasVolume(t.vendasOutros)});
+
+  if (totalEquipeRank === 0) {
     document.getElementById('ranking').innerHTML = '<div class="ranking-empty"><div class="big-emoji">🤝</div><p>Consultoras estão empatadas! Os dados aparecerão aqui assim que a apuração for feita.</p></div>';
-  } else if (!metaBater) {
-    // Meta ainda não batida — mostra participação mas sem definir vencedor
-    const khPerc = ((t.sv / totalHH_AK) * 100).toFixed(1);
-    const liPerc = ((t.rv / totalHH_AK) * 100).toFixed(1);
-    const bonusVendasHH = calcBonusVendasVolume(t.vendasHH);
-    const bonusVendasAK = calcBonusVendasVolume(t.vendasAK);
-    const sorted = [
-      {name:'Hayhume', val:t.sv, perc:khPerc, vendas:t.vendasHH, bonusV:bonusVendasHH},
-      {name:'Ana Kézia', val:t.rv, perc:liPerc, vendas:t.vendasAK, bonusV:bonusVendasAK}
-    ].sort((a,b) => b.val - a.val);
-    document.getElementById('ranking').innerHTML = '<div class="ranking-container">' + sorted.map((item, i) => `
-      <div class="ranking-card ${i===0?'gold':'silver'}" style="opacity:0.85">
-        <div class="medal" style="filter:grayscale(100%)">🏅</div>
-        <div class="rank-name">${item.name}</div>
-        <div class="rank-pct">${item.perc}% da participação</div>
-        <div class="rank-value">R$ ${fmt(item.val)}</div>
-        <div class="rank-bar"><div class="fill" style="width:${item.perc}%"></div></div>
-        <div class="rank-detail">${item.vendas} vendas · Bônus vendas: R$ ${fmt(item.bonusV)}</div>
-        <div class="rank-detail" style="font-weight:700;color:#888">Bater a meta para definir a campeã!</div>
-      </div>
-    `).join('') + '</div>';
   } else {
-    // Meta batida! Define campeã
-    const khPerc = ((t.sv / totalHH_AK) * 100).toFixed(1);
-    const liPerc = ((t.rv / totalHH_AK) * 100).toFixed(1);
-    const bonusVendasHH = calcBonusVendasVolume(t.vendasHH);
-    const bonusVendasAK = calcBonusVendasVolume(t.vendasAK);
-    const sorted = [
-      {name:'Hayhume', val:t.sv, perc:khPerc, vendas:t.vendasHH, bonusV:bonusVendasHH},
-      {name:'Ana Kézia', val:t.rv, perc:liPerc, vendas:t.vendasAK, bonusV:bonusVendasAK}
-    ].sort((a,b) => b.val - a.val);
-    const medalIcons = ['🥇', '🥈'];
-    const rankLabels = ['Campeã do mês!', 'Seguindo firme!'];
-    document.getElementById('ranking').innerHTML = '<div class="ranking-container">' + sorted.map((item, i) => `
-      <div class="ranking-card ${i===0?'gold':'silver'}">
-        <div class="medal">${medalIcons[i]}</div>
-        <div class="rank-name">${item.name}</div>
-        <div class="rank-pct">${item.perc}% da participação</div>
-        <div class="rank-value">R$ ${fmt(item.val)}</div>
-        <div class="rank-bar"><div class="fill" style="width:${item.perc}%"></div></div>
-        <div class="rank-detail">${item.vendas} vendas · Bônus vendas: R$ ${fmt(item.bonusV)}</div>
-        <div class="rank-detail" style="font-weight:700;color:${i===0?'var(--gold)':'var(--text-light)'}">${rankLabels[i]}</div>
-      </div>
-    `).join('') + '</div>';
+    // Calcula percentuais
+    const sorted = consultoras.map(c => ({...c, perc: ((c.val / totalEquipeRank) * 100).toFixed(1)})).sort((a,b) => b.val - a.val);
+    const numPessoas = sorted.length;
+
+    if (!metaBater) {
+      document.getElementById('ranking').innerHTML = '<div class="ranking-container">' + sorted.map((item, i) => `
+        <div class="ranking-card ${i===0?'gold':'silver'}" style="opacity:0.85">
+          <div class="medal" style="filter:grayscale(100%)">🏅</div>
+          <div class="rank-name">${item.name}</div>
+          <div class="rank-pct">${item.perc}% da participação</div>
+          <div class="rank-value">R$ ${fmt(item.val)}</div>
+          <div class="rank-bar"><div class="fill" style="width:${item.perc}%"></div></div>
+          <div class="rank-detail">${item.vendas} vendas · Bônus vendas: R$ ${fmt(item.bonusV)}</div>
+          <div class="rank-detail" style="font-weight:700;color:#888">Bater a meta para definir a campeã!</div>
+        </div>
+      `).join('') + '</div>';
+    } else {
+      const medalIcons = ['🥇', '🥈', '🥉'];
+      const rankLabels = ['Campeã do mês!', 'Seguindo firme!', 'Seguindo firme!'];
+      document.getElementById('ranking').innerHTML = '<div class="ranking-container">' + sorted.map((item, i) => `
+        <div class="ranking-card ${i===0?'gold':'silver'}">
+          <div class="medal">${medalIcons[i] || '🏅'}</div>
+          <div class="rank-name">${item.name}</div>
+          <div class="rank-pct">${item.perc}% da participação</div>
+          <div class="rank-value">R$ ${fmt(item.val)}</div>
+          <div class="rank-bar"><div class="fill" style="width:${item.perc}%"></div></div>
+          <div class="rank-detail">${item.vendas} vendas · Bônus vendas: R$ ${fmt(item.bonusV)}</div>
+          <div class="rank-detail" style="font-weight:700;color:${i===0?'var(--gold)':'var(--text-light)'}">${rankLabels[i]}</div>
+        </div>
+      `).join('') + '</div>';
+    }
   }
 
   // Meta diária dinâmica (Meta 1, 2 e 3)
@@ -1172,7 +1195,7 @@ function renderMeta(t) {
   const mesEncerrado = dd.diasUteisRestantes <= 0;
 
   if (mesEncerrado) {
-    const totalFinal = t.sv + t.rv + t.ov;
+    const totalFinal = totalAtual2;
     const percFinal = metaAtual > 0 ? (totalFinal / metaAtual * 100).toFixed(1) : '0.0';
     const statusColor = totalFinal >= meta3 ? '#b8860b' : totalFinal >= meta2 ? '#e65100' : totalFinal >= metaAtual ? '#2e7d32' : '#c0392b';
     document.getElementById('metaDiaria').innerHTML = `
@@ -1388,36 +1411,43 @@ function renderRetencao(t) {
 // ==================== FOLHA ====================
 function renderFolha(t) {
   const totalMes = t.sv + t.rv + t.ov;
-  const totalEquipe = t.sv + t.rv;
+  const showAK = !isMesAgostoOuDepois(); // Ana Kézia só até julho/2026
+  const totalEquipe = showAK ? (t.sv + t.rv + t.ov) : (t.sv + t.ov);
   const metaAtual = getMetaAtual();
   const bonusMetaHH = calcBonusProporcional(t.sv, totalEquipe, totalMes, metaAtual);
-  const bonusMetaAK = calcBonusProporcional(t.rv, totalEquipe, totalMes, metaAtual);
+  const bonusMetaAK = showAK ? calcBonusProporcional(t.rv, totalEquipe, totalMes, metaAtual) : 0;
+  const bonusMetaNT = calcBonusProporcional(t.ov, totalEquipe, totalMes, metaAtual);
   const bonusRenov = calcBonusRenovacao(t);
   const bonusVendasHH = calcBonusVendasVolume(t.vendasHH);
-  const bonusVendasAK = calcBonusVendasVolume(t.vendasAK);
+  const bonusVendasAK = showAK ? calcBonusVendasVolume(t.vendasAK) : 0;
+  const bonusVendasNT = calcBonusVendasVolume(t.vendasOutros);
   // Bônus avaliação: R$10 por cada avaliação vendida (individual)
   const bonusAvalHH = t.s_aval * CONFIG.bonusAvaliacao;
-  const bonusAvalAK = t.r_aval * CONFIG.bonusAvaliacao;
+  const bonusAvalAK = showAK ? (t.r_aval * CONFIG.bonusAvaliacao) : 0;
+  const bonusAvalNT = t.o_aval * CONFIG.bonusAvaliacao;
 
   // Total geral folha = bônus meta + bônus vendas + renovação + avaliações (não inclui valor vendido)
   const totalHH = bonusMetaHH + bonusVendasHH + bonusRenov + bonusAvalHH;
   const totalAK = bonusMetaAK + bonusVendasAK + bonusRenov + bonusAvalAK;
+  const totalNT = bonusMetaNT + bonusVendasNT + bonusRenov + bonusAvalNT;
 
   const percHH = totalMes > 0 ? ((t.sv / totalMes) * 100).toFixed(1) : '0.0';
   const percAK = totalMes > 0 ? ((t.rv / totalMes) * 100).toFixed(1) : '0.0';
-  const metaAtingida = totalMes >= metaAtual;
-  const meta2Atingida = totalMes >= Math.round(metaAtual * CONFIG.meta2Pct);
-  const meta3Atingida = totalMes >= Math.round(metaAtual * CONFIG.meta3Pct);
+  const percNT = totalMes > 0 ? ((t.ov / totalMes) * 100).toFixed(1) : '0.0';
 
   // Cores: verde se bônus > 0 (meta atingida), vermelho se = 0 (não atingida)
   const corMetaHH = bonusMetaHH > 0 ? 'var(--green)' : '#c0392b';
   const corMetaAK = bonusMetaAK > 0 ? 'var(--green)' : '#c0392b';
+  const corMetaNT = bonusMetaNT > 0 ? 'var(--green)' : '#c0392b';
   const corVendasHH = bonusVendasHH > 0 ? 'var(--green)' : '#c0392b';
   const corVendasAK = bonusVendasAK > 0 ? 'var(--green)' : '#c0392b';
+  const corVendasNT = bonusVendasNT > 0 ? 'var(--green)' : '#c0392b';
   const corRenov = bonusRenov > 0 ? 'var(--green)' : '#c0392b';
   const corAvalHH = bonusAvalHH > 0 ? 'var(--green)' : '#c0392b';
   const corAvalAK = bonusAvalAK > 0 ? 'var(--green)' : '#c0392b';
+  const corAvalNT = bonusAvalNT > 0 ? 'var(--green)' : '#c0392b';
 
+  // Update HTML section to show/hide Ana Kézia and add Natiele
   document.getElementById('folhaHH').innerHTML = `
     <div class="stats-row">
       <div class="stat-item"><div class="stat-value" style="color:${corMetaHH}">R$ ${fmt(bonusMetaHH)}</div><div class="stat-label">Bônus Meta Financeira (${percHH}% de participação)</div></div>
@@ -1429,16 +1459,23 @@ function renderFolha(t) {
     <div class="progress-bar" style="margin-top:8px"><div class="fill green" style="width:${Math.min((t.sv / metaAtual)*100, 100)}%"></div></div>
   `;
 
-  document.getElementById('folhaAK').innerHTML = `
-    <div class="stats-row">
-      <div class="stat-item"><div class="stat-value" style="color:${corMetaAK}">R$ ${fmt(bonusMetaAK)}</div><div class="stat-label">Bônus Meta Financeira (${percAK}% de participação)</div></div>
-      <div class="stat-item"><div class="stat-value" style="color:${corVendasAK}">R$ ${fmt(bonusVendasAK)}</div><div class="stat-label">Bônus Novas Vendas e Rematrículas (${t.vendasAK} planos)</div></div>
-      <div class="stat-item"><div class="stat-value" style="color:${corRenov}">R$ ${fmt(bonusRenov)}</div><div class="stat-label">Bônus por Meta de Renovação</div></div>
-      <div class="stat-item"><div class="stat-value" style="color:${corAvalAK}">R$ ${fmt(bonusAvalAK)}</div><div class="stat-label">Bônus Avaliações (${t.r_aval} × R$10)</div></div>
-    </div>
-    <div style="margin-top:12px;text-align:center"><div class="stat-value" style="font-size:1.3rem;color:var(--green)">R$ ${fmt(totalAK)}</div><div class="stat-label">Total Geral Folha — Ana Kézia</div></div>
-    <div class="progress-bar" style="margin-top:8px"><div class="fill gold" style="width:${Math.min((t.rv / metaAtual)*100, 100)}%"></div></div>
-  `;
+  // Ana Kézia: só aparece até julho/2026
+  const akCard = document.getElementById('folhaAK');
+  if (showAK) {
+    akCard.innerHTML = `
+      <div class="stats-row">
+        <div class="stat-item"><div class="stat-value" style="color:${corMetaAK}">R$ ${fmt(bonusMetaAK)}</div><div class="stat-label">Bônus Meta Financeira (${percAK}% de participação)</div></div>
+        <div class="stat-item"><div class="stat-value" style="color:${corVendasAK}">R$ ${fmt(bonusVendasAK)}</div><div class="stat-label">Bônus Novas Vendas e Rematrículas (${t.vendasAK} planos)</div></div>
+        <div class="stat-item"><div class="stat-value" style="color:${corRenov}">R$ ${fmt(bonusRenov)}</div><div class="stat-label">Bônus por Meta de Renovação</div></div>
+        <div class="stat-item"><div class="stat-value" style="color:${corAvalAK}">R$ ${fmt(bonusAvalAK)}</div><div class="stat-label">Bônus Avaliações (${t.r_aval} × R$10)</div></div>
+      </div>
+      <div style="margin-top:12px;text-align:center"><div class="stat-value" style="font-size:1.3rem;color:var(--green)">R$ ${fmt(totalAK)}</div><div class="stat-label">Total Geral Folha — Ana Kézia</div></div>
+      <div class="progress-bar" style="margin-top:8px"><div class="fill gold" style="width:${Math.min((t.rv / metaAtual)*100, 100)}%"></div></div>
+    `;
+    akCard.closest('.card').style.display = '';
+  } else {
+    akCard.closest('.card').style.display = 'none';
+  }
 
   // Destaque de desempenho individual
   function getDesempenho(vendas) {
@@ -1452,6 +1489,10 @@ function renderFolha(t) {
 
   const desempHH = getDesempenho(t.vendasHH);
   const desempAK = getDesempenho(t.vendasAK);
+  const desempNT = getDesempenho(t.vendasOutros);
+
+  const totalVendasEquipe = showAK ? (t.vendasHH + t.vendasAK + t.vendasOutros) : (t.vendasHH + t.vendasOutros);
+  const pessoasEquipe = showAK ? 3 : 2;
 
   // Renderiza apenas política e destaque
   document.getElementById('resumoFolha').innerHTML = `
@@ -1502,6 +1543,7 @@ function renderFolha(t) {
             <div class="progress-bar" style="height:6px"><div class="fill green" style="width:${Math.min((t.vendasHH/80)*100,100)}%"></div></div>
           </div>
         </div>
+        ${showAK ? `
         <div class="stat-item" style="border-left:4px solid ${desempAK.color}">
           <div class="stat-label">Ana Kézia</div>
           <div class="stat-value" style="color:${desempAK.color};font-size:1.1rem">${t.vendasAK} planos</div>
@@ -1510,14 +1552,23 @@ function renderFolha(t) {
           <div style="margin-top:6px">
             <div class="progress-bar" style="height:6px"><div class="fill green" style="width:${Math.min((t.vendasAK/80)*100,100)}%"></div></div>
           </div>
+        </div>` : ''}
+        <div class="stat-item" style="border-left:4px solid ${desempNT.color}">
+          <div class="stat-label">Natiele</div>
+          <div class="stat-value" style="color:${desempNT.color};font-size:1.1rem">${t.vendasOutros} planos</div>
+          <div style="font-size:0.78rem;color:${desempNT.color};margin-top:4px"><strong>${desempNT.label}</strong></div>
+          <div style="font-size:0.72rem;color:var(--text-light);margin-top:2px">${desempNT.desc}</div>
+          <div style="margin-top:6px">
+            <div class="progress-bar" style="height:6px"><div class="fill green" style="width:${Math.min((t.vendasOutros/80)*100,100)}%"></div></div>
+          </div>
         </div>
         <div class="stat-item" style="border-left:4px solid #4a6fa5">
           <div class="stat-label">Indicador Financeiro</div>
-          <div class="stat-value" style="font-size:1.1rem">${t.vendasHH + t.vendasAK} planos</div>
+          <div class="stat-value" style="font-size:1.1rem">${totalVendasEquipe} planos</div>
           <div style="font-size:0.78rem;color:var(--text-light);margin-top:4px">Total da equipe</div>
           <div style="font-size:0.72rem;color:var(--text-light);margin-top:2px">Mínimo ideal: 40 planos/pessoa</div>
           <div style="margin-top:6px">
-            <div class="progress-bar" style="height:6px"><div class="fill blue" style="width:${Math.min(((t.vendasHH+t.vendasAK)/160)*100,100)}%"></div></div>
+            <div class="progress-bar" style="height:6px"><div class="fill blue" style="width:${Math.min((totalVendasEquipe/(pessoasEquipe*40))*100,100)}%"></div></div>
           </div>
         </div>
       </div>
@@ -1951,7 +2002,7 @@ function renderProdutos(t) {
         <tr><th>Pessoa</th><th>Produtos Vendidos</th><th>Crédito (1%)</th></tr>
         <tr><td>Hayhume</td><td>R$ ${fmt(t.produtosHH)}</td><td><strong>R$ ${fmt(t.creditoHH)}</strong></td></tr>
         <tr><td>Ana Kézia</td><td>R$ ${fmt(t.produtosAK)}</td><td><strong>R$ ${fmt(t.creditoAK)}</strong></td></tr>
-        <tr style="background:#f0f0f0"><td><strong>Natiele</strong></td><td><strong>R$ ${fmt(t.produtosOutros)}</strong></td><td><em>Crédito vai para liderança</em></td></tr>
+        <tr><td><strong>Natiele</strong></td><td><strong>R$ ${fmt(t.produtosOutros)}</strong></td><td><strong>R$ ${fmt(Math.round(t.produtosOutros * 0.01))}</strong></td></tr>
       </table>
     </div>
   `;
@@ -2114,7 +2165,7 @@ function renderLideranca() {
       <div class="tip-box" style="font-size:0.88rem;line-height:1.8;margin-top:8px">
         <strong>Bônus Renovação (Taxa da Unidade):</strong><br>
         ≥85% de renovação = R$ 200 | ≥70% = R$ 100 | abaixo de 70% = 0<br>
-        <span style="color:#666;font-size:0.78rem">Calculado: (rematrículas / novos + rematrículas) × 100</span>
+        <span style="color:#666;font-size:0.78rem">        Calculado: (renovações efetivadas / renovações previstas) × 100</span>
       </div>
       <div class="tip-box" style="font-size:0.88rem;line-height:1.8;margin-top:8px">
         <strong>Crédito Produtos (1%):</strong><br>
@@ -2230,20 +2281,24 @@ function renderPreencher() {
     </div>
     <div style="font-size:0.78rem;color:#666;margin-top:4px">Escolha o mês que deseja preencher acima.</div>
 
+    <style>
+      .ak-field-hidden { display: none !important; }
+    </style>
+
     <div class="section-title">Identificação</div>
     <div class="form-group"><label>Nome de quem está registrando</label><input type="text" id="fill_nome" placeholder="Seu nome (ex: Maria)" value="${records.length ? (records[0].nome || '') : ''}"></div>
 
     <div class="section-title">Vendas — Meta Financeira (R$) — Vendas pagas, sem contar saldo devedor</div>
     <div class="card-grid">
       <div class="form-group"><label>Hayhume${accLabel('sv')}</label><input type="number" id="fill_sv" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Ana Kézia${accLabel('rv')}</label><input type="number" id="fill_rv" step="0.01" placeholder="0,00"></div>
+      <div class="form-group ak-field"><label>Ana Kézia${accLabel('rv')}</label><input type="number" id="fill_rv" step="0.01" placeholder="0,00"></div>
       <div class="form-group"><label>Natiele${accLabel('ov')}</label><input type="number" id="fill_ov" step="0.01" placeholder="0,00"></div>
     </div>
 
     <div class="section-title">Produtos Vendidos (R$)</div>
     <div class="card-grid">
       <div class="form-group"><label>Hayhume${accLabel('sp')}</label><input type="number" id="fill_sp" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Ana Kézia${accLabel('rp')}</label><input type="number" id="fill_rp" step="0.01" placeholder="0,00"></div>
+      <div class="form-group ak-field"><label>Ana Kézia${accLabel('rp')}</label><input type="number" id="fill_rp" step="0.01" placeholder="0,00"></div>
       <div class="form-group"><label>Natiele${accLabel('ou_prod')}</label><input type="number" id="fill_ou_prod" step="0.01" placeholder="0,00"></div>
     </div>
 
@@ -2260,7 +2315,7 @@ function renderPreencher() {
             <td><input type="number" id="fill_s_anuais" placeholder="${acc.s_anuais || 0}" style="width:70px"></td>
             <td><input type="number" id="fill_s_aval" placeholder="${acc.s_aval || 0}" style="width:70px"></td>
         </tr>
-        <tr><td><strong>Ana Kézia</strong></td>
+        <tr class="ak-field"><td><strong>Ana Kézia</strong></td>
             <td><input type="number" id="fill_r_novas" placeholder="${acc.r_novas || 0}" style="width:70px"></td>
             <td><input type="number" id="fill_r_remat" placeholder="${acc.r_remat || 0}" style="width:70px"></td>
             <td><input type="number" id="fill_r_anuais" placeholder="${acc.r_anuais || 0}" style="width:70px"></td>
@@ -2327,7 +2382,7 @@ async function saveData() {
     o_anuais: num(document.getElementById('fill_o_anuais').value),
     sa_prod: document.getElementById('fill_sp').value || 0,
     ra_prod: document.getElementById('fill_rp').value || 0,
-    ab_prod: 0,
+
     ou_prod: document.getElementById('fill_ou_prod').value || 0,
     ativos_inicio: num(document.getElementById('fill_ativos_inicio').value),
     cancelamentos: num(document.getElementById('fill_cancelamentos').value)
