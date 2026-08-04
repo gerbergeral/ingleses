@@ -351,8 +351,8 @@ tr:hover { background: #f0f0f0; }
       <div id="folhaAK"></div>
     </div>
     <div class="card">
-      <h2>📋 Resumo Folha de Pagamento</h2>
-      <div id="resumoFolha"></div>
+      <h2>💰 Ganhos — Natiele</h2>
+      <div id="folhaNT"></div>
     </div>
   </div>
 
@@ -426,7 +426,7 @@ const CONFIG = {
   meta2Pct: 1.10,  // Meta 2 = +10% sobre Meta 1
   meta3Pct: 1.20,  // Meta 3 = +20% sobre Meta 1
   metas: {
-    // Períodos com metas diferentes (meta1, meta2=+10%, meta3=+20%) — PALHOÇA
+    // Períodos com metas diferentes (meta1, meta2=+10%, meta3=+20%) — INGLESES
     // Meta padrão: R$60.000
     periods: [
       { from: '2026-01', to: '2026-06', meta: 65000 },  // Jan-Jun/2026
@@ -760,6 +760,7 @@ function getTotals() {
 
   const sv = num(last.sv);
   const rv = num(last.rv);
+  const nt_v = num(last.nt_v);
   const ov = num(last.ov);
   const s_novas = num(last.s_novas);
   const s_remat = num(last.s_remat);
@@ -767,49 +768,55 @@ function getTotals() {
   const r_novas = num(last.r_novas);
   const r_remat = num(last.r_remat);
   const r_aval = num(last.r_aval);
+  const nt_novas = num(last.nt_novas);
+  const nt_remat = num(last.nt_remat);
+  const nt_aval = num(last.nt_aval);
   const o_novas = num(last.o_novas);
   const o_remat = num(last.o_remat);
   const o_aval = num(last.o_aval);
   const s_anuais = num(last.s_anuais);
   const r_anuais = num(last.r_anuais);
+  const nt_anuais = num(last.nt_anuais);
   const o_anuais = num(last.o_anuais);
   const renovTotal = num(last.renovTotal);
   const renovFeitos = num(last.renovFeitos);
   const cancelamentos = num(last.cancelamentos);
   const ativosInicio = num(last.ativos_inicio);
 
-  // Vendas totais da unidade (novas + rematrículas de todos)
-  const totalVendas = s_novas + s_remat + r_novas + r_remat + o_novas + o_remat;
+    // Vendas totais da unidade (novas + rematrículas de todos)
+  const totalVendas = s_novas + s_remat + r_novas + r_remat + nt_novas + nt_remat + o_novas + o_remat;
   const vendasHH = s_novas + s_remat;
   const vendasAK = r_novas + r_remat;
+  const vendasNT = nt_novas + nt_remat;
   const vendasOutros = o_novas + o_remat;
-
   // Produtos (valores em reais) — último registro
   const produtosHH = num(last.sp) + num(last.sa_prod);
   const produtosAK = num(last.rp) + num(last.ra_prod);
+  const produtosNT = num(last.nt_prod);
   const produtosOutros = num(last.ou_prod);
-  const totalProdutos = produtosHH + produtosAK + produtosOutros;
-
+  const totalProdutos = produtosHH + produtosAK + produtosNT + produtosOutros;
   // Crédito 1% (crédito interno para consumo no sistema)
   const creditoHH = Math.round(produtosHH * 0.01);
   const creditoAK = Math.round(produtosAK * 0.01);
+  const creditoNT = Math.round(produtosNT * 0.01);
 
   // Qualidade de venda (% de anuais sobre total de planos)
   const totalPlanos = totalVendas || 1;
-  const totalAnuais = s_anuais + r_anuais + o_anuais;
+  const totalAnuais = s_anuais + r_anuais + nt_anuais + o_anuais;
   const percAnuais = totalPlanos > 0 ? ((totalAnuais / totalPlanos) * 100).toFixed(1) : '0.0';
   const percAnuaisHH = vendasHH > 0 ? ((s_anuais / vendasHH) * 100).toFixed(1) : '0.0';
   const percAnuaisAK = vendasAK > 0 ? ((r_anuais / vendasAK) * 100).toFixed(1) : '0.0';
+  const percAnuaisNT = vendasNT > 0 ? ((nt_anuais / vendasNT) * 100).toFixed(1) : '0.0';
   const percAnuaisOutros = vendasOutros > 0 ? ((o_anuais / vendasOutros) * 100).toFixed(1) : '0.0';
 
-  return { sv, rv, ov, s_novas, s_remat, s_aval, r_novas, r_remat, r_aval, o_novas, o_remat, o_aval, s_anuais, r_anuais, o_anuais, renovTotal, renovFeitos, ativosInicio, cancelamentos, totalVendas, vendasHH, vendasAK, vendasOutros, totalAnuais, percAnuais, percAnuaisHH, percAnuaisAK, percAnuaisOutros, produtosHH, produtosAK, produtosOutros, totalProdutos, creditoHH, creditoAK };
+  return { sv, rv, nt_v, ov, s_novas, s_remat, s_aval, r_novas, r_remat, r_aval, nt_novas, nt_remat, nt_aval, o_novas, o_remat, o_aval, s_anuais, r_anuais, nt_anuais, o_anuais, renovTotal, renovFeitos, ativosInicio, cancelamentos, totalVendas, vendasHH, vendasAK, vendasNT, vendasOutros, totalAnuais, percAnuais, percAnuaisHH, percAnuaisAK, percAnuaisNT, percAnuaisOutros, produtosHH, produtosAK, produtosNT, produtosOutros, totalProdutos, creditoHH, creditoAK, creditoNT };
 }
 
 // ==================== META DIARIA DINÂMICA ====================
 function calcMetaDiariaDinamica(t) {
   const meta1 = getMetaAtual();
   const meta2 = Math.round(meta1 * CONFIG.meta2Pct);
-  const totalAtual = t.sv + t.rv + t.ov;
+  const totalAtual = t.sv + t.rv + t.nt_v + t.ov;
 
   // Usar o mês selecionado, não o mês atual do sistema
   const selectedDate = parseCurrentMonthToDate();
@@ -878,7 +885,7 @@ function calcMetaSemanal(t) {
     return rDate >= semanaInicio && rDate <= semanaFim;
   });
 
-  const totalSemana = semanaRegistros.reduce((s, r) => s + num(r.sv) + num(r.rv) + num(r.ov), 0);
+  const totalSemana = semanaRegistros.reduce((s, r) => s + num(r.sv) + num(r.rv) + num(r.nt_v) + num(r.ov), 0);
 
   // Meta semanal = meta_mensal / 4 (aproximado) ou melhor: dividir pelos dias úteis do mês * dias úteis da semana
   const diasUteisTotais = countWorkingDaysInMonth(year, month);
@@ -1030,7 +1037,7 @@ function getMetaAtual() {
 }
 
 function renderMeta(t) {
-  const totalAtual = t.sv + t.rv + t.ov;
+  const totalAtual = t.sv + t.rv + t.nt_v + t.ov;
   const metaAtual = getMetaAtual();
   const perc = totalAtual > 0 ? Math.min((totalAtual / metaAtual) * 100, 100).toFixed(1) : '0.0';
   const fillClass = totalAtual === 0 ? 'blue' : perc >= 100 ? 'green' : perc >= 70 ? 'gold' : 'red';
@@ -1111,6 +1118,7 @@ function renderMeta(t) {
   // Qualidade de venda
   renderQualidadeVenda(t);
 
+  const showAK = !isMesAgostoOuDepois();
   // Cards
   document.getElementById('cardsEquipe').innerHTML = `
     <div class="person-card">
@@ -1120,19 +1128,20 @@ function renderMeta(t) {
       <div class="value" style="color:${t.sv > 0 ? 'var(--green)' : '#c0392b'}">R$ ${fmt(t.sv)}</div>
       <div class="sub">Planos: ${t.vendasHH} | Anuais: ${t.s_anuais} (${t.percAnuaisHH}%)</div>
     </div>
-    <div class="person-card" style="border-left-color:var(--accent2)">
-      <div class="name">Ana Kézia</div>
-      <div class="role">Consultora</div>
-      <div class="label">Vendas</div>
-      <div class="value" style="color:${t.rv > 0 ? 'var(--green)' : '#c0392b'}">R$ ${fmt(t.rv)}</div>
-      <div class="sub">Planos: ${t.vendasAK} | Anuais: ${t.r_anuais} (${t.percAnuaisAK}%)</div>
-    </div>
+    ${showAK ? '<div class="person-card" style="border-left-color:var(--accent2)"><div class="name">Ana Kézia</div><div class="role">Consultora</div><div class="label">Vendas</div><div class="value" style="color:'+(t.rv > 0 ? 'var(--green)' : '#c0392b')+'">R$ '+fmt(t.rv)+'</div><div class="sub">Planos: '+t.vendasAK+' | Anuais: '+t.r_anuais+' ('+t.percAnuaisAK+'%)</div></div>' : ''}
     <div class="person-card" style="border-left-color:var(--gold)">
       <div class="name">Natiele</div>
       <div class="role">Consultora</div>
       <div class="label">Vendas</div>
+      <div class="value" style="color:${t.nt_v > 0 ? 'var(--green)' : '#c0392b'}">R$ ${fmt(t.nt_v)}</div>
+      <div class="sub">Planos: ${t.vendasNT} | Anuais: ${t.nt_anuais} (${t.percAnuaisNT}%)</div>
+    </div>
+    <div class="person-card" style="border-left-color:#999">
+      <div class="name">Outros</div>
+      <div class="role">Registro adicional</div>
+      <div class="label">Vendas</div>
       <div class="value" style="color:${t.ov > 0 ? 'var(--green)' : '#c0392b'}">R$ ${fmt(t.ov)}</div>
-      <div class="sub">Planos: ${t.vendasOutros} | Anuais: ${t.o_anuais} (${t.percAnuaisOutros}%)</div>
+      <div class="sub">Planos: ${t.vendasOutros} | Anuais: ${t.o_anuais}</div>
     </div>
   `;
 
@@ -1140,8 +1149,8 @@ function renderMeta(t) {
 
   // Ranking — Medalhas + Participação
   const showAKRank = !isMesAgostoOuDepois(); // Ana Kézia só até julho/2026
-  const totalEquipeRank = showAKRank ? (t.sv + t.rv + t.ov) : (t.sv + t.ov);
-  const totalAtual2 = t.sv + t.rv + t.ov;
+  const totalEquipeRank = showAKRank ? (t.sv + t.rv + t.nt_v + t.ov) : (t.sv + t.nt_v + t.ov);
+  const totalAtual2 = t.sv + t.rv + t.nt_v + t.ov;
   const metaAtual2 = getMetaAtual();
   const metaBater = totalAtual2 >= metaAtual2;
 
@@ -1152,7 +1161,10 @@ function renderMeta(t) {
   if (showAKRank) {
     consultoras.push({name:'Ana Kézia', val:t.rv, vendas:t.vendasAK, bonusV:calcBonusVendasVolume(t.vendasAK)});
   }
-  consultoras.push({name:'Natiele', val:t.ov, vendas:t.vendasOutros, bonusV:calcBonusVendasVolume(t.vendasOutros)});
+  consultoras.push({name:'Natiele', val:t.nt_v, vendas:t.vendasNT, bonusV:calcBonusVendasVolume(t.vendasNT)});
+  if (t.vendasOutros > 0) {
+    consultoras.push({name:'Outros', val:t.ov, vendas:t.vendasOutros, bonusV:0});
+  }
 
   if (totalEquipeRank === 0) {
     document.getElementById('ranking').innerHTML = '<div class="ranking-empty"><div class="big-emoji">🤝</div><p>Consultoras estão empatadas! Os dados aparecerão aqui assim que a apuração for feita.</p></div>';
@@ -1322,14 +1334,16 @@ function renderQualidadeVenda(t) {
   }
   const percUnit = parseFloat(t.percAnuais) || 0;
   const cor = percUnit >= 70 ? 'var(--green)' : percUnit >= 50 ? 'var(--gold)' : 'var(--accent)';
+  const showAK = !isMesAgostoOuDepois();
   document.getElementById('planoAnualBox').innerHTML = `
     <div class="plano-anual">
       <strong>🎯 Qualidade de Venda — Planos Anuais</strong>
       <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:8px;font-size:0.88rem">
         <div><strong>Unidade:</strong> ${t.totalAnuais} anuais de ${totalPlanos} planos (${t.percAnuais}%)</div>
         <div><strong>Hayhume:</strong> ${t.s_anuais} de ${t.vendasHH} (${t.percAnuaisHH}%)</div>
-        <div><strong>Ana Kézia:</strong> ${t.r_anuais} de ${t.vendasAK} (${t.percAnuaisAK}%)</div>
-        <div><strong>Natiele:</strong> ${t.o_anuais} de ${t.vendasOutros} (${t.percAnuaisOutros}%)</div>
+        ${showAK ? '<div><strong>Ana Kézia:</strong> '+t.r_anuais+' de '+t.vendasAK+' ('+t.percAnuaisAK+'%)</div>' : ''}
+        <div><strong>Natiele:</strong> ${t.nt_anuais} de ${t.vendasNT} (${t.percAnuaisNT}%)</div>
+        <div><strong>Outros:</strong> ${t.o_anuais} de ${t.vendasOutros} (${t.percAnuaisOutros}%)</div>
       </div>
       <div style="margin-top:8px"><div class="progress-bar" style="background:var(--bg)"><div style="width:${Math.min(percUnit,100)}%;background:${cor}"></div></div></div>
       <span style="font-size:0.8rem;opacity:0.85">Meta de qualidade: 70% das vendas sendo planos anuais</span>
@@ -1412,21 +1426,21 @@ function renderRetencao(t) {
 
 // ==================== FOLHA ====================
 function renderFolha(t) {
-  const totalMes = t.sv + t.rv + t.ov;
+  const totalMes = t.sv + t.rv + t.nt_v + t.ov;
   const showAK = !isMesAgostoOuDepois(); // Ana Kézia só até julho/2026
-  const totalEquipe = showAK ? (t.sv + t.rv + t.ov) : (t.sv + t.ov);
+  const totalEquipe = showAK ? (t.sv + t.rv + t.nt_v + t.ov) : (t.sv + t.nt_v + t.ov);
   const metaAtual = getMetaAtual();
   const bonusMetaHH = calcBonusProporcional(t.sv, totalEquipe, totalMes, metaAtual);
   const bonusMetaAK = showAK ? calcBonusProporcional(t.rv, totalEquipe, totalMes, metaAtual) : 0;
-  const bonusMetaNT = calcBonusProporcional(t.ov, totalEquipe, totalMes, metaAtual);
+  const bonusMetaNT = calcBonusProporcional(t.nt_v, totalEquipe, totalMes, metaAtual);
   const bonusRenov = calcBonusRenovacao(t);
   const bonusVendasHH = calcBonusVendasVolume(t.vendasHH);
   const bonusVendasAK = showAK ? calcBonusVendasVolume(t.vendasAK) : 0;
-  const bonusVendasNT = calcBonusVendasVolume(t.vendasOutros);
+  const bonusVendasNT = calcBonusVendasVolume(t.vendasNT);
   // Bônus avaliação: R$10 por cada avaliação vendida (individual)
   const bonusAvalHH = t.s_aval * CONFIG.bonusAvaliacao;
   const bonusAvalAK = showAK ? (t.r_aval * CONFIG.bonusAvaliacao) : 0;
-  const bonusAvalNT = t.o_aval * CONFIG.bonusAvaliacao;
+  const bonusAvalNT = t.nt_aval * CONFIG.bonusAvaliacao;
 
   // Total geral folha = bônus meta + bônus vendas + renovação + avaliações (não inclui valor vendido)
   const totalHH = bonusMetaHH + bonusVendasHH + bonusRenov + bonusAvalHH;
@@ -1435,7 +1449,7 @@ function renderFolha(t) {
 
   const percHH = totalMes > 0 ? ((t.sv / totalMes) * 100).toFixed(1) : '0.0';
   const percAK = totalMes > 0 ? ((t.rv / totalMes) * 100).toFixed(1) : '0.0';
-  const percNT = totalMes > 0 ? ((t.ov / totalMes) * 100).toFixed(1) : '0.0';
+  const percNT = totalMes > 0 ? ((t.nt_v / totalMes) * 100).toFixed(1) : '0.0';
 
   // Cores: verde se bônus > 0 (meta atingida), vermelho se = 0 (não atingida)
   const corMetaHH = bonusMetaHH > 0 ? 'var(--green)' : '#c0392b';
@@ -1478,6 +1492,17 @@ function renderFolha(t) {
   } else {
     akCard.closest('.card').style.display = 'none';
   }
+  // Natiele folha card
+  document.getElementById('folhaNT').innerHTML = `
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-value" style="color:${corMetaNT}">R$ ${fmt(bonusMetaNT)}</div><div class="stat-label">Bônus Meta Financeira (${percNT}% de participação)</div></div>
+      <div class="stat-item"><div class="stat-value" style="color:${corVendasNT}">R$ ${fmt(bonusVendasNT)}</div><div class="stat-label">Bônus Novas Vendas e Rematrículas (${t.vendasNT} planos)</div></div>
+      <div class="stat-item"><div class="stat-value" style="color:${corRenov}">R$ ${fmt(bonusRenov)}</div><div class="stat-label">Bônus por Meta de Renovação</div></div>
+      <div class="stat-item"><div class="stat-value" style="color:${corAvalNT}">R$ ${fmt(bonusAvalNT)}</div><div class="stat-label">Bônus Avaliações (${t.nt_aval} × R$10)</div></div>
+    </div>
+    <div style="margin-top:12px;text-align:center"><div class="stat-value" style="font-size:1.3rem;color:var(--green)">R$ ${fmt(totalNT)}</div><div class="stat-label">Total Geral Folha — Natiele</div></div>
+    <div class="progress-bar" style="margin-top:8px"><div class="fill green" style="width:${Math.min((t.nt_v / metaAtual)*100, 100)}%"></div></div>
+  `;
 
   // Destaque de desempenho individual
   function getDesempenho(vendas) {
@@ -1491,13 +1516,13 @@ function renderFolha(t) {
 
   const desempHH = getDesempenho(t.vendasHH);
   const desempAK = getDesempenho(t.vendasAK);
-  const desempNT = getDesempenho(t.vendasOutros);
+  const desempNT = getDesempenho(t.vendasNT);
 
-  const totalVendasEquipe = showAK ? (t.vendasHH + t.vendasAK + t.vendasOutros) : (t.vendasHH + t.vendasOutros);
+  const totalVendasEquipe = showAK ? (t.vendasHH + t.vendasAK + t.vendasNT + t.vendasOutros) : (t.vendasHH + t.vendasNT + t.vendasOutros);
   const pessoasEquipe = showAK ? 3 : 2;
 
-  // Renderiza apenas política e destaque
-  document.getElementById('resumoFolha').innerHTML = `
+  // Renderiza política e destaque
+  const politicaHTML = `
     <div style="margin-top:20px">
       <h2 style="font-size:1.05rem;margin-bottom:12px;color:var(--primary)">📋 Política de Bonificação</h2>
       <div class="card" style="background:#f8f9ff;border-left:4px solid #3f51b5;padding:16px;margin-bottom:16px">
@@ -1557,11 +1582,11 @@ function renderFolha(t) {
         </div>` : ''}
         <div class="stat-item" style="border-left:4px solid ${desempNT.color}">
           <div class="stat-label">Natiele</div>
-          <div class="stat-value" style="color:${desempNT.color};font-size:1.1rem">${t.vendasOutros} planos</div>
+          <div class="stat-value" style="color:${desempNT.color};font-size:1.1rem">${t.vendasNT} planos</div>
           <div style="font-size:0.78rem;color:${desempNT.color};margin-top:4px"><strong>${desempNT.label}</strong></div>
           <div style="font-size:0.72rem;color:var(--text-light);margin-top:2px">${desempNT.desc}</div>
           <div style="margin-top:6px">
-            <div class="progress-bar" style="height:6px"><div class="fill green" style="width:${Math.min((t.vendasOutros/80)*100,100)}%"></div></div>
+            <div class="progress-bar" style="height:6px"><div class="fill green" style="width:${Math.min((t.vendasNT/80)*100,100)}%"></div></div>
           </div>
         </div>
         <div class="stat-item" style="border-left:4px solid #4a6fa5">
@@ -1576,6 +1601,9 @@ function renderFolha(t) {
       </div>
     </div>
   `;
+  // Append política to the folhaNT card
+  const ntCardEl = document.getElementById('folhaNT');
+  if (ntCardEl) ntCardEl.innerHTML += politicaHTML;
 }
 
 // ==================== INSIGHTS INTELIGENTES ====================
@@ -1600,12 +1628,13 @@ async function loadAllMonthsData() {
             sv: num(last.sv), rv: num(last.rv), ov: num(last.ov),
             s_novas: num(last.s_novas), s_remat: num(last.s_remat), s_anuais: num(last.s_anuais),
             r_novas: num(last.r_novas), r_remat: num(last.r_remat), r_anuais: num(last.r_anuais),
-            o_novas: num(last.o_novas), o_remat: num(last.o_remat), o_anuais: num(last.o_anuais),
+            nt_novas: num(last.nt_novas||0), nt_remat: num(last.nt_remat||0), nt_anuais: num(last.nt_anuais||0),
+            o_novas: num(last.o_novas||0), o_remat: num(last.o_remat||0), o_anuais: num(last.o_anuais||0),
             renovFeitos: num(last.renovFeitos), cancelamentos: num(last.cancelamentos),
             ativos_inicio: num(last.ativos_inicio),
             total: num(last.sv) + num(last.rv) + num(last.ov),
-            totalVendas: num(last.s_novas) + num(last.s_remat) + num(last.r_novas) + num(last.r_remat) + num(last.o_novas) + num(last.o_remat),
-            totalAnuais: num(last.s_anuais) + num(last.r_anuais) + num(last.o_anuais)
+            totalVendas: num(last.s_novas) + num(last.s_remat) + num(last.r_novas) + num(last.r_remat) + num(last.nt_novas||0) + num(last.nt_remat||0) + num(last.o_novas||0) + num(last.o_remat||0),
+            totalAnuais: num(last.s_anuais) + num(last.r_anuais) + num(last.nt_anuais||0) + num(last.o_anuais||0)
           };
         }
       } catch (e) {
@@ -1990,21 +2019,24 @@ async function renderInsights() {
 
 // ==================== PRODUTOS ====================
 function renderProdutos(t) {
+  const showAK = !isMesAgostoOuDepois();
   document.getElementById('produtosTable').innerHTML = `
     <div class="stats-row" style="margin-bottom:16px">
       <div class="stat-item"><div class="stat-value">R$ ${fmt(t.totalProdutos)}</div><div class="stat-label">Total Produtos</div></div>
       <div class="stat-item"><div class="stat-value">R$ ${fmt(t.produtosHH)}</div><div class="stat-label">Hayhume</div></div>
-      <div class="stat-item"><div class="stat-value">R$ ${fmt(t.produtosAK)}</div><div class="stat-label">Ana Kézia</div></div>
-      <div class="stat-item"><div class="stat-value">R$ ${fmt(t.produtosOutros)}</div><div class="stat-label">Natiele</div></div>
+      ${showAK ? '<div class="stat-item"><div class="stat-value">R$ '+fmt(t.produtosAK)+'</div><div class="stat-label">Ana Kézia</div></div>' : ''}
+      <div class="stat-item"><div class="stat-value">R$ ${fmt(t.produtosNT)}</div><div class="stat-label">Natiele</div></div>
+      <div class="stat-item"><div class="stat-value">R$ ${fmt(t.produtosOutros)}</div><div class="stat-label">Outros</div></div>
     </div>
     <div class="card" style="margin-top:16px">
       <h2 style="font-size:1rem">💳 Crédito 1% por Pessoa</h2>
-      <p style="font-size:0.78rem;color:#666;margin-bottom:8px">Crédito interno para consumo no sistema.</p>
+      <p style="font-size:0.78rem;color:#666;margin-bottom:8px">Crédito interno para consumo no sistema. Crédito de Outros vai para a liderança.</p>
       <table>
         <tr><th>Pessoa</th><th>Produtos Vendidos</th><th>Crédito (1%)</th></tr>
         <tr><td>Hayhume</td><td>R$ ${fmt(t.produtosHH)}</td><td><strong>R$ ${fmt(t.creditoHH)}</strong></td></tr>
-        <tr><td>Ana Kézia</td><td>R$ ${fmt(t.produtosAK)}</td><td><strong>R$ ${fmt(t.creditoAK)}</strong></td></tr>
-        <tr><td><strong>Natiele</strong></td><td><strong>R$ ${fmt(t.produtosOutros)}</strong></td><td><strong>R$ ${fmt(Math.round(t.produtosOutros * 0.01))}</strong></td></tr>
+        ${showAK ? '<tr><td>Ana Kézia</td><td>R$ '+fmt(t.produtosAK)+'</td><td><strong>R$ '+fmt(t.creditoAK)+'</strong></td></tr>' : ''}
+        <tr><td><strong>Natiele</strong></td><td><strong>R$ ${fmt(t.produtosNT)}</strong></td><td><strong>R$ ${fmt(t.creditoNT)}</strong></td></tr>
+        <tr><td>Outros</td><td>R$ ${fmt(t.produtosOutros)}</td><td><strong>R$ ${fmt(Math.round(t.produtosOutros * 0.01))}</strong> (liderança)</td></tr>
       </table>
     </div>
   `;
@@ -2042,7 +2074,7 @@ function renderLideranca() {
     return;
   }
   const t = getTotals();
-  const totalMes = t.sv + t.rv + t.ov;
+  const totalMes = t.sv + t.rv + t.nt_v + t.ov;
   const metaAtual = getMetaAtual();
 
   const meta1 = metaAtual;
@@ -2212,9 +2244,11 @@ function renderPreencher() {
   const acc = {
     sv: num(ult.sv),
     rv: num(ult.rv),
+    nt_v: num(ult.nt_v),
     ov: num(ult.ov),
     sp: num(ult.sp),
     rp: num(ult.rp),
+    nt_prod: num(ult.nt_prod),
     ou_prod: num(ult.ou_prod),
     s_novas: num(ult.s_novas),
     s_remat: num(ult.s_remat),
@@ -2222,6 +2256,9 @@ function renderPreencher() {
     r_novas: num(ult.r_novas),
     r_remat: num(ult.r_remat),
     r_anuais: num(ult.r_anuais),
+    nt_novas: num(ult.nt_novas),
+    nt_remat: num(ult.nt_remat),
+    nt_anuais: num(ult.nt_anuais),
     o_novas: num(ult.o_novas),
     o_remat: num(ult.o_remat),
     o_anuais: num(ult.o_anuais),
@@ -2239,9 +2276,10 @@ function renderPreencher() {
       <td style="font-size:0.8rem">${formatDate(r.data)}</td>
       <td style="font-size:0.8rem">R$ ${fmt(num(r.sv))}</td>
       <td style="font-size:0.8rem">R$ ${fmt(num(r.rv))}</td>
+      <td style="font-size:0.8rem">R$ ${fmt(num(r.nt_v))}</td>
       <td style="font-size:0.8rem">R$ ${fmt(num(r.ov))}</td>
     </tr>
-  `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-light)">Nenhum registro anterior neste mês</td></tr>';
+  `).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-light)">Nenhum registro anterior neste mês</td></tr>';
 
   // Helper para label com acumulado
   const accLabel = (field, isReal = true) => {
@@ -2271,7 +2309,7 @@ function renderPreencher() {
     <div class="alert alert-info" style="margin-top:12px">
       <strong>📋 Últimos registros deste mês (para referência):</strong>
       <table style="margin-top:8px">
-        <tr><th>Nome</th><th>Data</th><th>Hayhume</th><th>Ana Kézia</th><th>Natiele</th></tr>
+        <tr><th>Nome</th><th>Data</th><th>Hayhume</th><th>Ana Kézia</th><th>Natiele</th><th>Outros</th></tr>
         ${historioHtml}
       </table>
     </div>
@@ -2294,14 +2332,16 @@ function renderPreencher() {
     <div class="card-grid">
       <div class="form-group"><label>Hayhume${accLabel('sv')}</label><input type="number" id="fill_sv" step="0.01" placeholder="0,00"></div>
       <div class="form-group ak-field"><label>Ana Kézia${accLabel('rv')}</label><input type="number" id="fill_rv" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Natiele${accLabel('ov')}</label><input type="number" id="fill_ov" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Natiele${accLabel('nt_v')}</label><input type="number" id="fill_nt_v" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Outros${accLabel('ov')}</label><input type="number" id="fill_ov" step="0.01" placeholder="0,00"></div>
     </div>
 
     <div class="section-title">Produtos Vendidos (R$)</div>
     <div class="card-grid">
       <div class="form-group"><label>Hayhume${accLabel('sp')}</label><input type="number" id="fill_sp" step="0.01" placeholder="0,00"></div>
       <div class="form-group ak-field"><label>Ana Kézia${accLabel('rp')}</label><input type="number" id="fill_rp" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Natiele${accLabel('ou_prod')}</label><input type="number" id="fill_ou_prod" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Natiele${accLabel('nt_prod')}</label><input type="number" id="fill_nt_prod" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Outros${accLabel('ou_prod')}</label><input type="number" id="fill_ou_prod" step="0.01" placeholder="0,00"></div>
     </div>
 
     <div class="section-title">Planos Vendidos</div>
@@ -2324,6 +2364,12 @@ function renderPreencher() {
             <td><input type="number" id="fill_r_aval" placeholder="${acc.r_aval || 0}" style="width:70px"></td>
         </tr>
         <tr><td><strong>Natiele</strong></td>
+            <td><input type="number" id="fill_nt_novas" placeholder="${acc.nt_novas || 0}" style="width:70px"></td>
+            <td><input type="number" id="fill_nt_remat" placeholder="${acc.nt_remat || 0}" style="width:70px"></td>
+            <td><input type="number" id="fill_nt_anuais" placeholder="${acc.nt_anuais || 0}" style="width:70px"></td>
+            <td><input type="number" id="fill_nt_aval" placeholder="${acc.nt_aval || 0}" style="width:70px"></td>
+        </tr>
+        <tr><td><strong>Outros</strong></td>
             <td><input type="number" id="fill_o_novas" placeholder="${acc.o_novas || 0}" style="width:70px"></td>
             <td><input type="number" id="fill_o_remat" placeholder="${acc.o_remat || 0}" style="width:70px"></td>
             <td><input type="number" id="fill_o_anuais" placeholder="${acc.o_anuais || 0}" style="width:70px"></td>
@@ -2361,11 +2407,12 @@ async function saveData() {
     nome: document.getElementById('fill_nome').value || 'Líder',
     data: dataReal,
     hora: horaReal,
-    total: num(document.getElementById('fill_sv').value) + num(document.getElementById('fill_rv').value) + num(document.getElementById('fill_ov').value),
+    total: num(document.getElementById('fill_sv').value) + num(document.getElementById('fill_rv').value) + num(document.getElementById('fill_nt_v').value) + num(document.getElementById('fill_ov').value),
     sv: num(document.getElementById('fill_sv').value),
     sp: document.getElementById('fill_sp').value || 0,
     rv: num(document.getElementById('fill_rv').value),
     rp: document.getElementById('fill_rp').value || 0,
+    nt_v: num(document.getElementById('fill_nt_v').value),
     ov: num(document.getElementById('fill_ov').value),
     op: document.getElementById('fill_ou_prod').value || 0,
     renovTotal: num(document.getElementById('fill_renovTotal').value),
@@ -2376,16 +2423,20 @@ async function saveData() {
     r_novas: num(document.getElementById('fill_r_novas').value),
     r_remat: num(document.getElementById('fill_r_remat').value),
     r_aval: num(document.getElementById('fill_r_aval').value),
+        nt_novas: num(document.getElementById('fill_nt_novas').value),
+    nt_remat: num(document.getElementById('fill_nt_remat').value),
+    nt_aval: num(document.getElementById('fill_nt_aval').value),
     o_novas: num(document.getElementById('fill_o_novas').value),
     o_remat: num(document.getElementById('fill_o_remat').value),
     o_aval: num(document.getElementById('fill_o_aval').value),
     s_anuais: num(document.getElementById('fill_s_anuais').value),
     r_anuais: num(document.getElementById('fill_r_anuais').value),
+    nt_anuais: num(document.getElementById('fill_nt_anuais').value),
     o_anuais: num(document.getElementById('fill_o_anuais').value),
-    sa_prod: document.getElementById('fill_sp').value || 0,
-    ra_prod: document.getElementById('fill_rp').value || 0,
-
-    ou_prod: document.getElementById('fill_ou_prod').value || 0,
+    sa_prod: num(document.getElementById('fill_sp').value),
+    ra_prod: num(document.getElementById('fill_rp').value),
+    nt_prod: num(document.getElementById('fill_nt_prod').value),
+    ou_prod: num(document.getElementById('fill_ou_prod').value),
     ativos_inicio: num(document.getElementById('fill_ativos_inicio').value),
     cancelamentos: num(document.getElementById('fill_cancelamentos').value)
   };
